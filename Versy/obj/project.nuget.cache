@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "3NlYiM/KRmQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\m4nd3l\\Documents\\Dati\\CSharp\\Versy\\Versy\\Versy.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\dumpify\\0.7.1-beta.1\\dumpify.0.7.1-beta.1.nupkg.sha512",
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console\\0.54.0\\spectre.console.0.54.0.nupkg.sha512",
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console.cli\\1.0.0-alpha.0.15\\spectre.console.cli.1.0.0-alpha.0.15.nupkg.sha512",
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\system.collections.immutable\\8.0.0\\system.collections.immutable.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
