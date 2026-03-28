@@ -6,17 +6,20 @@ using System.IO;
 
 using Versy.AST;
 using Versy.AST.Statements;
+using Versy.Codegen;
 using Versy.CommandParser;
+using Versy.Compiler;
 using Versy.Errors;
 using Versy.Lexer;
 using Versy.Parser;
 
 
 public class VVCommand : Command<Options> {
-    private Options        settings   { get; set; }
-    private string         sourceCode { get; set; }
-    private List<Token>    tokens     { get; set; }
-    private BlockStatement statement  { get; set; }
+    private Options        settings      { get; set; }
+    private string         sourceCode    { get; set; }
+    private List<Token>    tokens        { get; set; }
+    private BlockStatement statement     { get; set; }
+    private string         generatedCode { get; set; }
     
     protected override int Execute(CommandContext context, Options settings, CancellationToken cancellationToken) {
         this.settings = settings;
@@ -33,7 +36,7 @@ public class VVCommand : Command<Options> {
         printStatus($"Getting {settings.InputFile} content...", get, "[lime]:check_mark:  Successfully extracted the input file's content.[/]");
         printStatus($"Lexing...", lex, "[lime]:check_mark:  Successfully lexed.[/]");
         printStatus($"Parsing...", parse, "[lime]:check_mark:  Successfully parsed.[/]");
-        printStatus($"Generating C# code...", parse, "[lime]:check_mark:  Successfully generated C# code.[/]");
+        printStatus($"Generating C# code...", codegen, "[lime]:check_mark:  Successfully generated C# code.[/]");
         printStatus($"Compiling...", compile, "[lime]:check_mark:  Successfully compiled![/]");
         
         if (settings.AutoRun) printStatus($"Running...", run);
@@ -78,8 +81,20 @@ public class VVCommand : Command<Options> {
             File.WriteAllText(settings.ASTOutputPath , text);
         } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
     }
-    private void codegen(StatusContext ctx) { Thread.Sleep(2000); }
-    private void compile(StatusContext ctx) { Thread.Sleep(2000); }
+    private void codegen(StatusContext ctx) {
+        try {
+            CSharpTranslator csTranslator = new CSharpTranslator(statement);
+            generatedCode = csTranslator.translate();
+            if (settings.CSOutputPath == "") return;
+            using var writer = new StringWriter();
+            File.WriteAllText(settings.CSOutputPath , generatedCode);
+        } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
+    }
+    private void compile(StatusContext ctx) {
+        try {
+            CSharpCompiler compiler = new CSharpCompiler(generatedCode, settings.OutputPath);
+        } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
+    }
     private void run(StatusContext ctx) { Thread.Sleep(2000); }
 
     private void printStatus(string statusText, Action<StatusContext> action, string? success = null, Spinner? spinner = null, Style? style = null) {

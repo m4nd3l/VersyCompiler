@@ -32,24 +32,17 @@ public class CSharpTranslator : Translator {
         return csCode.ToString();
     }
 
-    private void translateStatement(Statement statement) {
-        switch (statement) {
-            case VariableDeclarationStatement varDeclaration:
-                translateVariableDeclaration(varDeclaration);
-                break;
-            case IfStatement ifStmt:
-                translateIf(ifStmt);
-                break;
-            case ExpressionStatement expression:
-                writeLine(translateExpression(expression.expression));
-                break;
-            case BlockStatement block:
-                translateBlock(block);
-                break;
-        }
+    private string translateStatement(Statement? statement) {
+        if (statement == null) return "";
+        return statement switch {
+            VariableDeclarationStatement varDeclaration => translateVariableDeclaration(varDeclaration),
+            IfStatement ifStmt                          => translateIf(ifStmt),
+            ExpressionStatement expression              => translateExpressionStatement(expression),
+            BlockStatement block                        => translateBlock(block),
+        };
     }
 
-    private void translateVariableDeclaration(VariableDeclarationStatement variableDeclaration) {
+    private string translateVariableDeclaration(VariableDeclarationStatement variableDeclaration) {
         string typePart = mapType(variableDeclaration.type);
         string modifier = "";
         
@@ -58,28 +51,64 @@ public class CSharpTranslator : Translator {
         
         string assignment = ";";
         if (variableDeclaration.assignedValue != null) assignment = $" = ({typePart}) {translateExpression(variableDeclaration.assignedValue)}";
-
-        writeLine($"{modifier} {typePart} {variableDeclaration.identifier}{assignment};");
-    }
-
-    private void translateIf(IfStatement ifStatement) {
-        string @if = "if";
-        string condition = translateExpression(ifStatement.condition);
-        string body = translateBlock(ifStatement.body);
         
+        string result = $"{modifier} {typePart} {variableDeclaration.identifier}{assignment};";
+        writeLine(result);
+        return result;
     }
 
+    private string translateIf(IfStatement ifStatement) {
+        StringBuilder localResult = new();
+
+        string condition = $"if ({translateExpression(ifStatement.condition)})";
+        writeLine(condition);
+        localResult.Append(condition);
+        
+        string body = translateStatement(ifStatement.body);
+        localResult.Append(body);
+        
+        if (ifStatement.elses != null) {
+            if (ifStatement.elses is IfStatement elseIf) {
+                writeLine("else");
+                string nextIf = translateIf(elseIf); 
+                localResult.Append(" else " + nextIf);
+            } else {
+                writeLine("else");
+                string elseBody = translateStatement(ifStatement.elses);
+                localResult.Append(" else " + elseBody);
+            }
+        }
+
+        return localResult.ToString();
+    }
+
+    private string translateBlock(BlockStatement block) {
+        string result = "{";
+        writeLine("{");
+        indent++;
+        foreach (var statement in block.statements) result += translateStatement(statement);
+        indent--;
+        writeLine("}");
+        return result + "}";
+    }
+        
+    private string translateExpressionStatement(ExpressionStatement expressionStatement) {
+        string result = translateExpression(expressionStatement.expression) + ";";
+        writeLine(result);
+        return result;
+    }
+    
     private string translateExpression(Expression expression) {
         return expression switch {
             NumberExpression number         => $"{number.value}",
-            StringExpression @string        =>  @string.value,
-            PrefixExpression prefix         => $"{prefix.Operator.codeReference}{translateExpression(prefix.right)}",
-            PostfixExpression postfix       => $"{translateExpression(postfix.left)}{postfix.Operator.codeReference}",
+            StringExpression @string        => $"\"{@string.value}\"",
+            PrefixExpression prefix         => $"{prefix.Operator.codeReference} {translateExpression(prefix.right)}",
+            PostfixExpression postfix       => $"{translateExpression(postfix.left)} {postfix.Operator.codeReference}",
             SymbolExpression symbol         => symbol.value,
-            BinaryExpression binary         => $"{translateExpression(binary.left)}{binary.operation.codeReference}{translateExpression(binary.right)}",
-            AssignmentExpression assignment => $"{translateExpression(assignment.assigne)}{assignment.operation.codeReference}{assignment.right}",
+            BinaryExpression binary         => $"{translateExpression(binary.left)} {binary.operation.codeReference} {translateExpression(binary.right)}",
             ArrayAssignmentExpression array => $"new [] {{{string.Join(", ", array.value.Select(e => translateExpression(e)))}}}",
             IndexAccessExpression access    => $"{translateExpression(access.left)}[{translateExpression(access.index)}]",
+            AssignmentExpression assi       => $"{translateExpression(assi.assigne)} {assi.operation.codeReference} {translateExpression(assi.right)}",
                                           _ => throw new UnknownExpressionException(),
         };
     }

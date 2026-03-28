@@ -27,3 +27,4 @@ C:\Users\m4nd3l\Documents\Dati\CSharp\Versy\Versy\obj\Debug\net8.0\Versy.pdb
 C:\Users\m4nd3l\Documents\Dati\CSharp\Versy\Versy\obj\Debug\net8.0\Versy.genruntimeconfig.cache
 C:\Users\m4nd3l\Documents\Dati\CSharp\Versy\Versy\obj\Debug\net8.0\ref\Versy.dll
 C:\Users\m4nd3l\Documents\Dati\CSharp\Versy\Versy\bin\Debug\net8.0\Dumpify.dll
+C:\Users\m4nd3l\Documents\Dati\CSharp\Versy\Versy\obj\Debug\net8.0\Versy.sourcelink.json
