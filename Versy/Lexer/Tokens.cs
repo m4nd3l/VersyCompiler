@@ -21,6 +21,7 @@ public enum Tokens {
     SEMICOLON,                  // ;
     DOT,                        // .
     QUESTION_MARK,              // ?
+    DOLLAR,                     // $
     
     PLUS,                       // +
     PLUS_PLUS,                  // ++
@@ -43,9 +44,9 @@ public enum Tokens {
     NULL,                       // null
     TRUE,                       // true
     FALSE,                      // false
+    NEW,                        // new
     
     RARROW,                     // =>
-    
     
     EQUALS,                     // ==     |
     NOT_EQUALS,                 // !=     | Used just for conditionals
@@ -60,8 +61,8 @@ public enum Tokens {
     CONST,                      // const
     VAR,                        // var
     IF,                         // if
-    ELSE,                       // else
     ELIF,                       // elif
+    ELSE,                       // else
     AND,                        // &&
     OR,                         // ||
     WHILE,                      // while

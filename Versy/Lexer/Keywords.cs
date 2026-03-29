@@ -5,6 +5,7 @@ public class Keywords {
         { "const",      Tokens.CONST },
         { "var",        Tokens.VAR },
         { "null",       Tokens.NULL },
+        { "new",      Tokens.NEW},
         { "&&",         Tokens.AND },
         { "||",         Tokens.OR },
         { "if",         Tokens.IF },

@@ -7,7 +7,5 @@ public class ExpressionStatement : Statement {
         this.expression = expression;
     }
 
-    public void statement() {
-        
-    }
+    public void statement() { }
 }

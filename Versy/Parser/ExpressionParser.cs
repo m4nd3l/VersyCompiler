@@ -39,14 +39,21 @@ public class ExpressionParser {
         
     public Expression parsePrimaryExpression(VersyParser p) {
         var oldToken = p.advance();
-        if (oldToken.type == Tokens.IDENTIFIER && p.getCurrentTokenType() == Tokens.LPAREN) return parseFunctionCallExpression(p, oldToken);
-        if (oldToken.type == Tokens.IDENTIFIER && 
+        bool wasIdentifier = oldToken.type == Tokens.IDENTIFIER;
+        // FUNCTION
+        if (wasIdentifier && p.getCurrentTokenType() == Tokens.LPAREN) return parseFunctionCallExpression(p, oldToken);
+        // BUILTIN FUNCTION
+        if (wasIdentifier && 
                    oldToken.value.Equals("versy") && 
                    p.getCurrentTokenType() == Tokens.DOT) {
             p.expect(Tokens.DOT);
             return parseFunctionCallExpression(p, p.advance(), true);
         }
-        // TODO : Add member access for classes and classes methods and variables
+        // MEMBER
+        if (wasIdentifier && p.getCurrentTokenType() == Tokens.DOT) {
+            var identifier = new SymbolExpression((string)oldToken.value);
+            return parseMemberAccessExpression(p, identifier, BindingPower.MEMBER);
+        }
         return oldToken.type switch {
             Tokens.NUMBER     => new NumberExpression((double) oldToken.value),
             Tokens.STRING     => new StringExpression((string) oldToken.value),
@@ -76,6 +83,20 @@ public class ExpressionParser {
         var expression = parseExpression(p, BindingPower.DEFAULT);
         p.expect(Tokens.RPAREN);
         return expression;
+    }
+    
+    public Expression parseMemberAccessExpression(VersyParser p, Expression left, BindingPower operatorPrecedence) {
+        p.advance();
+        var right = parseExpression(p, BindingPower.MEMBER);
+        return new MemberAccessExpression(left, right);
+    }
+    
+    public Expression parseCastExpression(VersyParser p) {
+        p.advance();
+        var toCastTo = p.statementParser.parseType(p);
+        p.expect(Tokens.COMMA);
+        var value = parseExpression(p, BindingPower.DEFAULT);
+        return new CastExpression(toCastTo, value);;
     }
     
     public Expression parseArrayAssignmentExpression(VersyParser p) {
@@ -118,5 +139,11 @@ public class ExpressionParser {
         }
         p.expect(Tokens.RPAREN);
         return new CallFunctionExpression(identifier, args, isBuiltin);
+    }
+
+    public Expression parseForeachLeftExpression(VersyParser p) {
+        p.advance();
+        string identifier = (string) p.expect(Tokens.IDENTIFIER).value;
+        return new ForeachLeftExpression(identifier);
     }
 }

@@ -45,7 +45,7 @@ public class CSharpCompiler {
             return false;
         }
         
-        string tempOutputDir = Path.Combine(Path.GetDirectoryName(csprojOutPath), "publish_temp");
+        string tempOutputDir = outputPath.Replace(".exe", "");
         
         ProcessStartInfo psi = new ProcessStartInfo {
             FileName               = "dotnet",
@@ -57,19 +57,13 @@ public class CSharpCompiler {
         };
         
         using var process = Process.Start(psi);
-        string output = process.StandardOutput.ReadToEnd();
         string error = process.StandardError.ReadToEnd();
         process.WaitForExit();
-        AnsiConsole.WriteLine(output);
         if (process.ExitCode == 0) {
             try {
                 string sourceExe = Path.Combine(tempOutputDir, assemblyName + ".exe");
-                if (File.Exists(sourceExe)) {
-                    if (File.Exists(outputPath)) File.Delete(outputPath);
-                    Directory.Move(Path.GetDirectoryName(sourceExe), outputPath.Replace(".exe", ""));
-                    AnsiConsole.MarkupLine($"[lime]✔  Executable moved to:[/] {outputPath}");
-                    return true;
-                }
+                if (File.Exists(sourceExe)) AnsiConsole.MarkupLine($"[lime]✔  Executable moved to:[/] {outputPath}");
+                return true;
             } catch (Exception ex) { AnsiConsole.WriteException(ex); }
         } else AnsiConsole.MarkupLine($"[red]✘ Compilation failed.[/]\n{error}");
         return false;

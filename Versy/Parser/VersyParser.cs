@@ -48,10 +48,12 @@ public class VersyParser {
         nud(Tokens.IDENTIFIER,  expressionParser.parsePrimaryExpression);
         
         nud(Tokens.MINUS,  expressionParser.parsePrefixExpression);
-
         nud(Tokens.LPAREN,  expressionParser.parseGroupingExpression);
-        
         nud(Tokens.LSBRACKET, expressionParser.parseArrayAssignmentExpression);
+        
+        nud(Tokens.RARROW,  expressionParser.parseCastExpression);
+        
+        nud(Tokens.VAR, expressionParser.parseForeachLeftExpression);
         
         // Logical
         led(Tokens.AND, BindingPower.LOGICAL, expressionParser.parseBinaryExpression);
@@ -83,11 +85,18 @@ public class VersyParser {
         led(Tokens.PLUS_PLUS, BindingPower.MEMBER, expressionParser.parsePostfixExpression);
         led(Tokens.MINUS_MINUS, BindingPower.MEMBER, expressionParser.parsePostfixExpression);
         
+        // Member Access
+        led(Tokens.DOT, BindingPower.MEMBER, expressionParser.parseMemberAccessExpression);
+        
         // Statements
         statement(Tokens.CONST, statementParser.parseVariableDeclarationStatement);
         statement(Tokens.VAR, statementParser.parseVariableDeclarationStatement);
         statement(Tokens.IF, statementParser.parseIfStatement);
+        statement(Tokens.FOR, statementParser.parseForStatement);
+        statement(Tokens.FOREACH, statementParser.parseForeachStatement);
+        statement(Tokens.WHILE, statementParser.parseWhileStatement);
         statement(Tokens.FUNC, statementParser.parseFunctionDeclarationStatement);
+        statement(Tokens.RETURN, statementParser.parseReturnStatement);
 
         // Access
         led(Tokens.LSBRACKET, BindingPower.MEMBER, expressionParser.parseIndexAccessExpression);

@@ -186,6 +186,11 @@ public class VersyLexer {
             return new Token(Tokens.POWER, "^", null, currentPosition - 1);
         }
         #endregion
+        // DOLLAR
+        if (getCurrentChar() == '$') {
+            advance();
+            return new Token(Tokens.DOLLAR, "$", null, currentPosition - 1);
+        }
         // IDENTIFIER
         if (Char.IsLetter(getCurrentChar()) || getCurrentChar() == '_') {
             int startPosition = currentPosition;

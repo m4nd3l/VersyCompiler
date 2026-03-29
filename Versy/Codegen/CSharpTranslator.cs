@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Spectre.Console;
+using System.Text;
 
 using Versy.AST;
 using Versy.AST.Expressions;
@@ -32,6 +33,9 @@ public class CSharpTranslator : Translator {
         foreach (var top in tops) translateStatement(top);
         //foreach (var definition in definitions) translateDefinition(definition);
         
+        writeLine("string tolower(string @string) { return @string.ToLower(); }");
+        writeLine("string toupper(string @string) { return @string.ToUpper(); }");
+        
         return code.ToString();
     }
 
@@ -42,8 +46,12 @@ public class CSharpTranslator : Translator {
             FunctionDeclarationStatement funcDeclaration => translateFunctionDeclaration(funcDeclaration),
             FunctionArgumentStatement funcArgument       => translateFunctionArgument(funcArgument),
             IfStatement ifStmt                           => translateIf(ifStmt),
+            ForStatement forStmt                         => translateFor(forStmt),
+            ForeachStatement foreachStmt                 => translateForeach(foreachStmt),
+            WhileStatement whileStmt                     => translateWhile(whileStmt),
             ExpressionStatement expression               => translateExpressionStatement(expression),
             BlockStatement block                         => translateBlock(block),
+            ReturnStatement @return                      => translateReturnStatement(@return),
         };
     }
 
@@ -54,41 +62,14 @@ public class CSharpTranslator : Translator {
         if (variableDeclaration.isConstant && variableDeclaration.assignedValue != null)      modifier = "const";
         else if (variableDeclaration.isConstant && variableDeclaration.assignedValue == null) modifier = ""; 
         
-        string assignment = ";";
-        if (variableDeclaration.assignedValue != null) assignment = $" = ({typePart}) {translateExpression(variableDeclaration.assignedValue)}";
+        string assignment = "";
+        if (variableDeclaration.assignedValue != null && variableDeclaration.type is ArrayType) 
+            assignment = $" = {translateExpression(variableDeclaration.assignedValue)}";
+        else if (variableDeclaration.assignedValue != null) 
+            assignment = $" = ({typePart}) {translateExpression(variableDeclaration.assignedValue)}";
         
         string result = $"{modifier} {typePart} {variableDeclaration.identifier}{assignment};";
         writeLine(result);
-        return result;
-    }
-
-    private string translateFunctionDeclaration(FunctionDeclarationStatement functionDeclaration) {
-        string result;
-        string returnType = mapType(functionDeclaration.returnType);
-        result = $"{returnType} {functionDeclaration.identifier}(";
-        write(result);
-        List<string> args = new();
-        foreach (Statement stmt in functionDeclaration.args) args.Add(translateStatement(stmt));
-        string fargs = "";
-        bool isLast;
-        for (int i = 0; i < args.Count; i++) {
-            isLast =  i == args.Count - 1;
-            fargs  += args[i];
-            if (!isLast) fargs += ", ";
-        }
-        result += fargs;
-        write(fargs);
-        result += ")";
-        write(")");
-        string body = translateStatement(functionDeclaration.body);
-        result += body;
-        return result;
-    }
-    
-    private string translateFunctionArgument(FunctionArgumentStatement functionArgument) {
-        string type = mapType(functionArgument.type);
-        string identifier = functionArgument.identifier;
-        string result = $"{type} {identifier}";
         return result;
     }
     
@@ -118,6 +99,37 @@ public class CSharpTranslator : Translator {
         return localResult.ToString();
     }
 
+    private string translateFor(ForStatement forStatement) {
+        string result = "for (";
+        write(result);
+        result += translateStatement(forStatement.initialization);
+        result += write(translateExpression(forStatement.condition) + ";");
+        result += write(translateExpression(forStatement.increment) + ")");
+        string body = translateStatement(forStatement.body);
+        result += body;
+        
+        return result;
+    }
+    
+    private string translateForeach(ForeachStatement foreachStatement) {
+        string result = "foreach (";
+        result += translateExpression(foreachStatement.left) + " : ";
+        result += translateExpression(foreachStatement.iterable) + ")";
+        writeLine(result);
+        string body = translateStatement(foreachStatement.body);
+        result += body;
+        return result;
+    }
+    
+    private string translateWhile(WhileStatement whileStatement) {
+        string result = "while (";
+        result += translateExpression(whileStatement.condition) + ")";
+        writeLine(result);
+        string body = translateStatement(whileStatement.body);
+        result += body;
+        return result;
+    }
+
     private string translateBlock(BlockStatement block) {
         string result = "{";
         writeLine("{");
@@ -126,6 +138,44 @@ public class CSharpTranslator : Translator {
         indent--;
         writeLine("}");
         return result + "}";
+    }
+    
+    private string translateFunctionDeclaration(FunctionDeclarationStatement functionDeclaration) {
+        string result;
+        string returnType = mapType(functionDeclaration.returnType);
+        result = $"{returnType} {functionDeclaration.identifier}(";
+        write(result);
+        List<string> args = new();
+        foreach (Statement stmt in functionDeclaration.args) args.Add(translateStatement(stmt));
+        string fargs = "";
+        bool isLast;
+        for (int i = 0; i < args.Count; i++) {
+            isLast =  i == args.Count - 1;
+            fargs  += args[i];
+            if (!isLast) fargs += ", ";
+        }
+        result += fargs;
+        write(fargs);
+        result += ")";
+        write(")");
+        string body = translateStatement(functionDeclaration.body);
+        result += body;
+        return result;
+    }
+    
+    private string translateFunctionArgument(FunctionArgumentStatement functionArgument) {
+        string type = mapType(functionArgument.type, false);
+        string identifier = functionArgument.identifier;
+        string result = $"{type} {identifier}";
+        return result;
+    }
+
+    private string translateReturnStatement(ReturnStatement returnStatement) {
+        string result = "return ";
+        if (returnStatement.expression != null) result += translateExpression(returnStatement.expression);
+        result += ";";
+        writeLine(result);
+        return result;
     }
         
     private string translateExpressionStatement(ExpressionStatement expressionStatement) {
@@ -136,17 +186,20 @@ public class CSharpTranslator : Translator {
     
     private string translateExpression(Expression expression) {
         return expression switch {
-            NumberExpression number         => $"{number.value}",
-            StringExpression @string        => $"\"{@string.value}\"",
-            PrefixExpression prefix         => $"{prefix.Operator.codeReference} {translateExpression(prefix.right)}",
-            PostfixExpression postfix       => $"{translateExpression(postfix.left)} {postfix.Operator.codeReference}",
-            SymbolExpression symbol         => symbol.value,
-            BinaryExpression binary         => $"{translateExpression(binary.left)} {binary.operation.codeReference} {translateExpression(binary.right)}",
-            ArrayAssignmentExpression array => $"new [] {{{string.Join(", ", array.value.Select(e => translateExpression(e)))}}}",
-            IndexAccessExpression access    => $"{translateExpression(access.left)}[{translateExpression(access.index)}]",
-            AssignmentExpression assi       => $"{translateExpression(assi.assigne)} {assi.operation.codeReference} {translateExpression(assi.right)}",
-            CallFunctionExpression callFunc => translateCallFunctionExpression(callFunc),
-                                          _ => throw new UnknownExpressionException(),
+            NumberExpression number                        => $"{number.value}",
+            StringExpression @string                       => $"\"{@string.value}\"",
+            PrefixExpression prefix                        => $"{prefix.Operator.codeReference} {translateExpression(prefix.right)}",
+            PostfixExpression postfix                      => $"{translateExpression(postfix.left)} {postfix.Operator.codeReference}",
+            SymbolExpression symbol                        => $"{symbol.value}",
+            BinaryExpression binary                        => $"{translateExpression(binary.left)} {binary.operation.codeReference} {translateExpression(binary.right)}",
+            ArrayAssignmentExpression array                => $"new [] {{{string.Join(", ", array.value.Select(e => translateExpression(e)))}}}",
+            IndexAccessExpression access                   => $"{translateExpression(access.left)}[{translateExpression(access.index)}]",
+            AssignmentExpression assi                      => $"{translateExpression(assi.assigne)} {assi.operation.codeReference} {translateExpression(assi.right)}",
+            ForeachLeftExpression @foreach                 => $"var {@foreach.identifier}",
+            CallFunctionExpression callFunc                => $"{translateCallFunctionExpression(callFunc)}",
+            MemberAccessExpression member                  => $"{translateExpression(member.left)}.{translateExpression(member.right)}",
+            VariableInitializationViaConstructor viaConstr => $"{translateVariableInitializationViaConstructorExpression(viaConstr)}",
+                                          _                => throw new UnknownExpressionException(),
         };
     }
 
@@ -154,23 +207,34 @@ public class CSharpTranslator : Translator {
         string identifier = callFunc.identifier;
         List<string> args = new();
         foreach (Expression expr in callFunc.arguments) args.Add(translateExpression(expr));
-        string fargs = "";
+        string f_args = "";
         bool isLast;
         for (int i = 0; i < args.Count; i++) {
             isLast =  i == args.Count - 1;
-            fargs  += args[i];
-            if (!isLast) fargs += ", ";
+            f_args  += args[i];
+            if (!isLast) f_args += ", ";
         }
-        if (!callFunc.isBuiltin) return $"{identifier}({fargs})";
+        if (!callFunc.isBuiltin) return $"{identifier}({f_args})";
         identifier = callFunc.identifier switch {
-            "println" => "Console.WriteLine",
-            "print"   => "Console.Write",
-            "read"    => "Console.ReadLine"
+            "println"   => "Console.WriteLine",
+            "print"     => "Console.Write",
+            "read"      => "Console.ReadLine",
+            "toInt"     => "Int32.Parse",
+            "toDecimal" => "Double.Parse",
+            "toLower"   => "tolower",
+            "toUpper"   => "toupper",
         };
-        return $"{identifier}({fargs})";
+        return $"{identifier}({f_args})";
     }
 
-    private string mapType(Type type) {
+    private string translateVariableInitializationViaConstructorExpression(VariableInitializationViaConstructor viaConstr) {
+        if (viaConstr.isArray) return $"new {mapType(viaConstr.type)}";
+        string args = "";
+        foreach (var arg in viaConstr.args)  args += translateExpression(arg);
+        return $"new {mapType(viaConstr.type)}({args})";
+    }
+
+    private string mapType(Type type, bool arrayNumbers = true) {
         return type switch {
             SymbolType symbolType => symbolType.name switch {
                 "int"     => "int",
@@ -181,30 +245,33 @@ public class CSharpTranslator : Translator {
                 "object"  => "object",
                        _  => symbolType.name
             },
-            ArrayType arrayType => getFullArray(arrayType),
-            _ => "object"
+            ArrayType arrayType => getFullArray(arrayType, arrayNumbers),
+            _                   => "object"
         };
     }
     
-    private string getFullArray(ArrayType arrayType) {
-        int dimensions = 0;
+    private string getFullArray(ArrayType arrayType, bool arrayNumbers) {
         Type current = arrayType;
+        StringBuilder builder = new StringBuilder();
 
         while (current is ArrayType at) {
-            dimensions++;
+            builder.Append('[');
+            builder.Append(at.size != null && arrayNumbers ? at.size : "");
+            builder.Append(']');
             current = at.underlying;
         }
 
-        string baseTypeName = mapType(current);
-        return baseTypeName + string.Concat(Enumerable.Repeat("[]", dimensions));
+        return mapType(current) + builder;
     }
     
-    private void writeLine(string text) {
+    private string writeLine(string text) {
         code.AppendLine(new string(' ', indent * 4) + text);
+        return text;
     }
     
-    private void write(string text) {
+    private string write(string text) {
         code.Append(new string(' ', indent * 4) + text);
+        return text;
     }
     
 }
