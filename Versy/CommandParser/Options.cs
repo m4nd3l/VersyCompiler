@@ -8,7 +8,7 @@ public class Options : CommandSettings{
     [Description("Path of the file with the source code.")]
     public string InputFile { get; set; }
     
-    [CommandOption("-o|--output <PATH>")]
+    [CommandArgument(1, "<OUTPUT_FILE>")]
     [Description("Specifies the output path for the generated files.")]
     public string OutputPath { get; set; }
     
@@ -27,4 +27,8 @@ public class Options : CommandSettings{
     [CommandOption("-r|--run")]
     [Description("Run automatically after compiling.")]
     public bool AutoRun { get; set; }
+        
+    [CommandOption("-s|--singlefile")]
+    [Description("Produce one exe.")]
+    public bool singlefile { get; set; }
 }

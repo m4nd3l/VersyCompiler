@@ -1,7 +1,7 @@
 ﻿using Dumpify;
 using Spectre.Console;
 using Spectre.Console.Cli;
-
+using System.Diagnostics;
 using System.IO;
 
 using Versy.AST;
@@ -22,8 +22,10 @@ public class VVCommand : Command<Options> {
     private string         generatedCode { get; set; }
     
     protected override int Execute(CommandContext context, Options settings, CancellationToken cancellationToken) {
-        this.settings = settings;
-        string output = settings.OutputPath ?? settings.InputFile.Replace(".vv", "") + ".exe";
+        this.settings       = settings;
+        settings.OutputPath = Path.GetFileNameWithoutExtension(settings.OutputPath);
+        
+        settings.CSOutputPath = settings.CSOutputPath.Replace('#', 'S');
         
         printPath("[yellow]Source code[/]", settings.InputFile);
         
@@ -31,7 +33,7 @@ public class VVCommand : Command<Options> {
         if (settings.ASTOutputPath != "") printPath("[yellow]AST Output[/]", settings.ASTOutputPath);
         if (settings.CSOutputPath != "") printPath("[yellow]C# Output[/]", settings.CSOutputPath);
         
-        printPath("[yellow]Executable[/]", output);
+        printPath("[yellow]Executable[/]", Path.Combine(Path.GetDirectoryName(settings.InputFile), settings.OutputPath + ".exe"));
         
         printStatus($"Getting {settings.InputFile} content...", get, "[lime]:check_mark:  Successfully extracted the input file's content.[/]");
         printStatus($"Lexing...", lex, "[lime]:check_mark:  Successfully lexed.[/]");
@@ -48,7 +50,6 @@ public class VVCommand : Command<Options> {
     private void get(StatusContext ctx) {
         try { sourceCode = File.ReadAllText(settings.InputFile); }
         catch (Exception ex) { error(ex); exit(null, true, 1, true); }
-        Thread.Sleep(1000);
     }
     private void lex(StatusContext ctx) {
         try {
@@ -58,9 +59,9 @@ public class VVCommand : Command<Options> {
             using var writer = new StringWriter();
             string text = "";
             foreach (Token token in tokens) text += token.ToString();
-            File.WriteAllText(settings.TokensOutputPath , text);
+            if (settings.TokensOutputPath != "") File.WriteAllText(settings.TokensOutputPath , text);
             if (!succeded) exit("One or more errors occurred.", true, 1, true);
-        } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
+        } catch (Exception e) { error(e); throw; }
     }
     private void parse(StatusContext ctx) {
         try {
@@ -78,8 +79,8 @@ public class VVCommand : Command<Options> {
                 typeNames: new TypeNamingConfig { ShowTypeNames      = true, UseFullName   = true, UseAliases = false},
                 tableConfig: new TableConfig { ShowRowSeparators     = true }
             );
-            File.WriteAllText(settings.ASTOutputPath , text);
-        } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
+            if (settings.ASTOutputPath != "") File.WriteAllText(settings.ASTOutputPath , text);
+        } catch (Exception e) { error(e); throw; }
     }
     private void codegen(StatusContext ctx) {
         try {
@@ -87,15 +88,58 @@ public class VVCommand : Command<Options> {
             generatedCode = csTranslator.translate();
             if (settings.CSOutputPath == "") return;
             using var writer = new StringWriter();
-            File.WriteAllText(settings.CSOutputPath , generatedCode);
-        } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
+            if (settings.CSOutputPath != "") File.WriteAllText(settings.CSOutputPath , generatedCode);
+        } catch (Exception e) { error(e); throw; }
     }
     private void compile(StatusContext ctx) {
         try {
-            CSharpCompiler compiler = new CSharpCompiler(generatedCode, settings.OutputPath);
+            string sourceFileDir = Path.GetDirectoryName(Path.GetFullPath(settings.InputFile)) ?? "";
+            
+            string finalExeName = settings.OutputPath.EndsWith(".exe") ? settings.OutputPath : settings.OutputPath + ".exe";
+            string absoluteOutputPath = Path.Combine(sourceFileDir, finalExeName);
+            
+            string baseFolder = string.IsNullOrWhiteSpace(settings.CSOutputPath) 
+                                    ? Path.Combine(Path.GetTempPath(), "VersyCompilerTemp") 
+                                    : Path.GetDirectoryName(Path.GetFullPath(settings.CSOutputPath));
+        
+            string workingFolder = Path.Combine(baseFolder, "BuildProject");
+            Directory.CreateDirectory(workingFolder);
+        
+            string csout = Path.Combine(workingFolder, "Program"); // Il .cs viene aggiunto dal costruttore del compiler
+            string csprojout = Path.Combine(workingFolder, settings.OutputPath + ".csproj");
+            
+            CSharpCompiler compiler = new CSharpCompiler(generatedCode, absoluteOutputPath, csout, csprojout, settings.singlefile);
+            bool succeded = compiler.compile();
+            settings.OutputPath = absoluteOutputPath;
+
+            if (!succeded) exit("One or more errors occurred.", true, 1, true);
+        } catch (Exception e) { error(e); throw; }
+    }
+    private void run(StatusContext ctx) {
+        try {
+            Process process = new Process();
+            process.StartInfo.FileName               = settings.OutputPath;
+            process.StartInfo.UseShellExecute        = false;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError  = true;
+            process.StartInfo.CreateNoWindow         = true;
+            
+            process.OutputDataReceived += (sender, e) => {
+                                              if (!string.IsNullOrEmpty(e.Data)) AnsiConsole.MarkupLine($"[blue bold]OUTPUT[/]: {e.Data}");
+                                          };
+            
+            process.ErrorDataReceived += (sender, e) => {
+                                             if (!string.IsNullOrEmpty(e.Data)) AnsiConsole.MarkupLine($"[red bold]ERROR:[/] {e.Data}");
+                                         };
+
+            process.Start();
+            
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            process.WaitForExit();
         } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
     }
-    private void run(StatusContext ctx) { Thread.Sleep(2000); }
 
     private void printStatus(string statusText, Action<StatusContext> action, string? success = null, Spinner? spinner = null, Style? style = null) {
         if (spinner == null) spinner = Spinner.Known.Default;

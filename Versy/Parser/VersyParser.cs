@@ -87,6 +87,7 @@ public class VersyParser {
         statement(Tokens.CONST, statementParser.parseVariableDeclarationStatement);
         statement(Tokens.VAR, statementParser.parseVariableDeclarationStatement);
         statement(Tokens.IF, statementParser.parseIfStatement);
+        statement(Tokens.FUNC, statementParser.parseFunctionDeclarationStatement);
 
         // Access
         led(Tokens.LSBRACKET, BindingPower.MEMBER, expressionParser.parseIndexAccessExpression);
@@ -108,8 +109,18 @@ public class VersyParser {
         errors.Add(error);
         return advance();
     }
-    public Token getCurrentToken() { return tokens[position]; }
-    public Token getNextToken() { return tokens[position + 1]; }
+    public Token getCurrentToken() {
+        if (position >= tokens.Count) 
+            return new Token(Tokens.END_OF_FILE, "", null, tokens[tokens.Count - 1].position);
+        return tokens[position];
+    }
+
+    public Token getNextToken() {
+        int next = position + 1;
+        if (next >= tokens.Count) 
+            return new Token(Tokens.END_OF_FILE, "", null, tokens[tokens.Count - 1].position);
+        return tokens[next];
+    }
     public Tokens getCurrentTokenType() { return getCurrentToken().type; }
     public Token advance() { var token = getCurrentToken(); position++; return token; }
     public Token getPreviousToken() { return tokens[position - 1]; }

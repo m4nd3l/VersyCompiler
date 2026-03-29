@@ -8,21 +8,6 @@ namespace Versy.Parser;
 
 public class ExpressionParser {
     
-    public Expression parseBinaryExpression(VersyParser p, Expression left, BindingPower operatorPrecedence) {
-        var operatorToken = p.advance();
-        var right = parseExpression(p, operatorPrecedence); 
-        return new BinaryExpression(left, operatorToken, right);
-    }
-        
-    public Expression parsePrimaryExpression(VersyParser p) {
-        var oldToken = p.advance();
-        return oldToken.type switch {
-            Tokens.NUMBER     => new NumberExpression((double) oldToken.value),
-            Tokens.STRING     => new StringExpression((string) oldToken.value),
-            Tokens.IDENTIFIER => new SymbolExpression((string) oldToken.value),
-        };
-    }
-    
     public Expression parseExpression(VersyParser p, BindingPower bindingPower) {
         var tokenType = p.getCurrentTokenType();
     
@@ -44,6 +29,29 @@ public class ExpressionParser {
         }
 
         return left;
+    }
+    
+    public Expression parseBinaryExpression(VersyParser p, Expression left, BindingPower operatorPrecedence) {
+        var operatorToken = p.advance();
+        var right = parseExpression(p, operatorPrecedence); 
+        return new BinaryExpression(left, operatorToken, right);
+    }
+        
+    public Expression parsePrimaryExpression(VersyParser p) {
+        var oldToken = p.advance();
+        if (oldToken.type == Tokens.IDENTIFIER && p.getCurrentTokenType() == Tokens.LPAREN) return parseFunctionCallExpression(p, oldToken);
+        if (oldToken.type == Tokens.IDENTIFIER && 
+                   oldToken.value.Equals("versy") && 
+                   p.getCurrentTokenType() == Tokens.DOT) {
+            p.expect(Tokens.DOT);
+            return parseFunctionCallExpression(p, p.advance(), true);
+        }
+        // TODO : Add member access for classes and classes methods and variables
+        return oldToken.type switch {
+            Tokens.NUMBER     => new NumberExpression((double) oldToken.value),
+            Tokens.STRING     => new StringExpression((string) oldToken.value),
+            Tokens.IDENTIFIER => new SymbolExpression((string) oldToken.value),
+        };
     }
     
     public Expression parseAssignmentExpression(VersyParser p, Expression left, BindingPower operatorPrecedence) {
@@ -97,5 +105,18 @@ public class ExpressionParser {
         p.expect(Tokens.RSBRACKET);
         
         return new IndexAccessExpression(left, index);
+    }
+
+    public Expression parseFunctionCallExpression(VersyParser p, Token oldToken, bool isBuiltin = false) {
+        string identifier = (string) oldToken.value;
+        p.expect(Tokens.LPAREN);
+        List<Expression> args = new List<Expression>();
+        while (p.getCurrentTokenType() != Tokens.RPAREN && p.getCurrentTokenType() != Tokens.END_OF_FILE) {
+            Expression argExpression = parseExpression(p, BindingPower.DEFAULT);
+            if (p.getCurrentTokenType() != Tokens.RPAREN) p.expect(Tokens.COMMA);
+            args.Add(argExpression);
+        }
+        p.expect(Tokens.RPAREN);
+        return new CallFunctionExpression(identifier, args, isBuiltin);
     }
 }

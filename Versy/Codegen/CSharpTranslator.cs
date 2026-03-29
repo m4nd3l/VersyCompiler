@@ -10,18 +10,21 @@ using Type = Versy.AST.Type;
 namespace Versy.Codegen;
 
 public class CSharpTranslator : Translator {
-    private BlockStatement AST    { get; set; }
-    private StringBuilder  csCode { get; set; } = new();
-    private int            indent { get; set; } = 0;
+    private BlockStatement AST           { get; set; }
+    private StringBuilder  code          { get; set; } = new();
+    private int            indent        { get; set; } = 0;
+
 
     public CSharpTranslator(BlockStatement AST) {
-        this.AST = AST;
+        this.AST       = AST;
     }
     
     public string translate() {
-        csCode.Clear();
+        code.Clear();
         writeLine("using System;");
+        writeLine("using System.Text;");
         writeLine("using System.Collections.Generic;");
+        writeLine("Console.OutputEncoding = Encoding.UTF8;");
 
         var tops = AST.statements;//AST.statements.Where(s => s is not ClassDefinition && s is not FunctionDefinition);
         var definitions = AST.statements;//AST.statements.Where(s => s is ClassDefinition || s is FunctionDefinition);
@@ -29,16 +32,18 @@ public class CSharpTranslator : Translator {
         foreach (var top in tops) translateStatement(top);
         //foreach (var definition in definitions) translateDefinition(definition);
         
-        return csCode.ToString();
+        return code.ToString();
     }
 
     private string translateStatement(Statement? statement) {
         if (statement == null) return "";
         return statement switch {
-            VariableDeclarationStatement varDeclaration => translateVariableDeclaration(varDeclaration),
-            IfStatement ifStmt                          => translateIf(ifStmt),
-            ExpressionStatement expression              => translateExpressionStatement(expression),
-            BlockStatement block                        => translateBlock(block),
+            VariableDeclarationStatement varDeclaration  => translateVariableDeclaration(varDeclaration),
+            FunctionDeclarationStatement funcDeclaration => translateFunctionDeclaration(funcDeclaration),
+            FunctionArgumentStatement funcArgument       => translateFunctionArgument(funcArgument),
+            IfStatement ifStmt                           => translateIf(ifStmt),
+            ExpressionStatement expression               => translateExpressionStatement(expression),
+            BlockStatement block                         => translateBlock(block),
         };
     }
 
@@ -57,11 +62,42 @@ public class CSharpTranslator : Translator {
         return result;
     }
 
-    private string translateIf(IfStatement ifStatement) {
+    private string translateFunctionDeclaration(FunctionDeclarationStatement functionDeclaration) {
+        string result;
+        string returnType = mapType(functionDeclaration.returnType);
+        result = $"{returnType} {functionDeclaration.identifier}(";
+        write(result);
+        List<string> args = new();
+        foreach (Statement stmt in functionDeclaration.args) args.Add(translateStatement(stmt));
+        string fargs = "";
+        bool isLast;
+        for (int i = 0; i < args.Count; i++) {
+            isLast =  i == args.Count - 1;
+            fargs  += args[i];
+            if (!isLast) fargs += ", ";
+        }
+        result += fargs;
+        write(fargs);
+        result += ")";
+        write(")");
+        string body = translateStatement(functionDeclaration.body);
+        result += body;
+        return result;
+    }
+    
+    private string translateFunctionArgument(FunctionArgumentStatement functionArgument) {
+        string type = mapType(functionArgument.type);
+        string identifier = functionArgument.identifier;
+        string result = $"{type} {identifier}";
+        return result;
+    }
+    
+    private string translateIf(IfStatement ifStatement, bool nested = false) {
         StringBuilder localResult = new();
 
         string condition = $"if ({translateExpression(ifStatement.condition)})";
-        writeLine(condition);
+        if (!nested) writeLine(condition);
+        else writeLine(condition);
         localResult.Append(condition);
         
         string body = translateStatement(ifStatement.body);
@@ -70,7 +106,7 @@ public class CSharpTranslator : Translator {
         if (ifStatement.elses != null) {
             if (ifStatement.elses is IfStatement elseIf) {
                 writeLine("else");
-                string nextIf = translateIf(elseIf); 
+                string nextIf = translateIf(elseIf, true); 
                 localResult.Append(" else " + nextIf);
             } else {
                 writeLine("else");
@@ -109,8 +145,29 @@ public class CSharpTranslator : Translator {
             ArrayAssignmentExpression array => $"new [] {{{string.Join(", ", array.value.Select(e => translateExpression(e)))}}}",
             IndexAccessExpression access    => $"{translateExpression(access.left)}[{translateExpression(access.index)}]",
             AssignmentExpression assi       => $"{translateExpression(assi.assigne)} {assi.operation.codeReference} {translateExpression(assi.right)}",
+            CallFunctionExpression callFunc => translateCallFunctionExpression(callFunc),
                                           _ => throw new UnknownExpressionException(),
         };
+    }
+
+    private string translateCallFunctionExpression(CallFunctionExpression callFunc) {
+        string identifier = callFunc.identifier;
+        List<string> args = new();
+        foreach (Expression expr in callFunc.arguments) args.Add(translateExpression(expr));
+        string fargs = "";
+        bool isLast;
+        for (int i = 0; i < args.Count; i++) {
+            isLast =  i == args.Count - 1;
+            fargs  += args[i];
+            if (!isLast) fargs += ", ";
+        }
+        if (!callFunc.isBuiltin) return $"{identifier}({fargs})";
+        identifier = callFunc.identifier switch {
+            "println" => "Console.WriteLine",
+            "print"   => "Console.Write",
+            "read"    => "Console.ReadLine"
+        };
+        return $"{identifier}({fargs})";
     }
 
     private string mapType(Type type) {
@@ -120,8 +177,6 @@ public class CSharpTranslator : Translator {
                 "decimal" => "double",
                 "string"  => "string",
                 "bool"    => "bool",
-                "byte"    => "byte",
-                "sbyte"   => "sbyte",
                 "char"    => "char",
                 "object"  => "object",
                        _  => symbolType.name
@@ -145,7 +200,11 @@ public class CSharpTranslator : Translator {
     }
     
     private void writeLine(string text) {
-        csCode.AppendLine(new string(' ', indent * 4) + text);
+        code.AppendLine(new string(' ', indent * 4) + text);
+    }
+    
+    private void write(string text) {
+        code.Append(new string(' ', indent * 4) + text);
     }
     
 }

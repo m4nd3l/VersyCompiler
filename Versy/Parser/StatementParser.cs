@@ -20,26 +20,21 @@ public class StatementParser {
     }
     
     public Statement parseBlockStatement(VersyParser p) {
-        p.expect(Tokens.LBRACKET); // Consuma '{'
+        p.expect(Tokens.LBRACKET); // Consumes '{'
         var statements = new List<Statement>();
         
         while (p.getCurrentTokenType() != Tokens.RBRACKET && p.getCurrentTokenType() != Tokens.END_OF_FILE) statements.Add(p.statementParser.parseStatement(p));
 
-        p.expect(Tokens.RBRACKET); // Consuma '}'
+        p.expect(Tokens.RBRACKET); // Consumes '}'
         return new BlockStatement(statements);
     }
     
     public Statement parseVariableDeclarationStatement(VersyParser p) {
-        // PATTERN: const/var identifier: type = value;
-        // OR     : const/var identifier: type;
-        // OR     : const/var identifier: type[];
-        // OR     : const/var identifier: type[] = [value1, value2];
         VariableDeclarationStatement statement;
         bool isConst = p.advance().type == Tokens.CONST;
         string identifier = (string) p.expectError(Tokens.IDENTIFIER).value;
         p.expect(Tokens.COLON);
-        Type type;
-        parseType();
+        Type type = parseType(p);
         if (p.getCurrentTokenType() == Tokens.SEMICOLON) {
             statement = new VariableDeclarationStatement(identifier, isConst, null, type);
             return statement;
@@ -49,18 +44,6 @@ public class StatementParser {
         p.expectSemicolon();
         statement = new VariableDeclarationStatement(identifier, isConst, value, type);
         return statement;
-        
-        void parseType() {
-            type = new SymbolType((string) p.expectError(Tokens.IDENTIFIER).value);
-            if (p.getCurrentTokenType() != Tokens.LSBRACKET) return;
-            bool firstTime = true;
-            while (p.getCurrentTokenType() == Tokens.LSBRACKET) {
-                if (firstTime) p.advance();
-                firstTime = false;
-                p.expect(Tokens.RSBRACKET);
-                type = new ArrayType(type);
-            }
-        }
     }
     
     public Statement parseIfStatement(VersyParser p) {
@@ -76,5 +59,37 @@ public class StatementParser {
             elseBranch = p.getCurrentTokenType() != Tokens.LBRACKET ? parseStatement(p) : parseBlockStatement(p);
         } else if (p.getCurrentTokenType() == Tokens.ELIF) elseBranch = parseIfStatement(p);
         return new IfStatement(condition, body, elseBranch);
+    }
+
+    public Statement parseFunctionDeclarationStatement(VersyParser p) {
+        p.expect(Tokens.FUNC);
+        string identifier = (string) p.expect(Tokens.IDENTIFIER).value;
+        p.expect(Tokens.LPAREN);
+        List<Statement> args = new List<Statement>();
+        while (p.getCurrentTokenType() != Tokens.RPAREN && p.getCurrentTokenType() != Tokens.END_OF_FILE) {
+            string argIdentifier = (string) p.expect(Tokens.IDENTIFIER).value;
+            p.expect(Tokens.COLON);
+            Type argType = parseType(p);
+            if (p.getCurrentTokenType() != Tokens.RPAREN) p.expect(Tokens.COMMA);
+            args.Add(new FunctionArgumentStatement(argType, argIdentifier));
+        }
+        p.expect(Tokens.RPAREN);
+        p.expect(Tokens.RARROW);
+        Type @return = parseType(p);
+        Statement body = parseBlockStatement(p);
+        return new FunctionDeclarationStatement(identifier, args, @return, body);
+    }
+    
+    public Type parseType(VersyParser p) {
+        Type type = new SymbolType((string) p.expectError(Tokens.IDENTIFIER).value);
+        if (p.getCurrentTokenType() != Tokens.LSBRACKET) return type;
+        bool firstTime = true;
+        while (p.getCurrentTokenType() == Tokens.LSBRACKET) {
+            if (firstTime) p.advance();
+            firstTime = false;
+            p.expect(Tokens.RSBRACKET);
+            type = new ArrayType(type);
+        }
+        return type;
     }
 }

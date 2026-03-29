@@ -1,39 +1,77 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Emit;
-using Spectre.Console;
+﻿using Spectre.Console;
+using System.Diagnostics;
 
 namespace Versy.Compiler;
 
 public class CSharpCompiler {
-    private string CSharpCode { get; set; }
-    private string outputPath { get; set; }
+    private string CSharpCode    { get; set; }
+    private string outputPath    { get; set; } // .exe
+    private string csOutPath     { get; set; } // .cs
+    private string csprojOutPath { get; set; } // .csproj
+    private bool   singlefile    { get; set; }
 
-    public CSharpCompiler(string CSharpCode, string outputPath) {
-        this.CSharpCode      = CSharpCode;
-        this.outputPath = outputPath;
-    }
+    public CSharpCompiler(string CSharpCode, string outputPath, string csOutPath, string csprojOutPath, bool singlefile) {
+        this.CSharpCode     = CSharpCode;
+        this.outputPath     = outputPath;
+        this.csOutPath      = csOutPath + ".cs";
+        this.csprojOutPath  = csprojOutPath;
+        this.singlefile     = singlefile;
+    }   
 
-    public void compile() {
-        MetadataReference[] references = new MetadataReference[] {
-            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
-            MetadataReference.CreateFromFile(System.Runtime.Loader.AssemblyLoadContext.Default
-                                                 .LoadFromAssemblyName(new System.Reflection.AssemblyName("System.Runtime")).Location)
-        };
-        var syntaxTree = CSharpSyntaxTree.ParseText(CSharpCode);
-        CSharpCompilation compiler = CSharpCompilation.Create(
-            "GeneratedProgram",
-            syntaxTrees: new[] { syntaxTree },
-            references: references,
-            options: new CSharpCompilationOptions(OutputKind.ConsoleApplication)
-        );
-        EmitResult result = compiler.Emit(outputPath);
-
-        if (!result.Success) {
-            AnsiConsole.MarkupLine("[red]:cross_mark:  Error during compilation:[/]");
-            foreach (Diagnostic diagnostic in result.Diagnostics) 
-                AnsiConsole.MarkupLine($"\t[red bold]{diagnostic.Id}:[/] [blue]{diagnostic.GetMessage()}[/]");
+    public bool compile() {
+        string assemblyName = Path.GetFileNameWithoutExtension(outputPath);
+        string csprojContent = $@"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>{assemblyName}</AssemblyName>
+    <PublishSingleFile>{singlefile}</PublishSingleFile>
+    <SelfContained>{singlefile}</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+</Project>";
+        
+        try {
+            File.WriteAllText(csprojOutPath, csprojContent);
+            File.WriteAllText(csOutPath, CSharpCode);
+        } catch (Exception ex) {
+            AnsiConsole.MarkupLine($"[red]✘ Error while genereting .cs & .csproj files:[/]");
+            AnsiConsole.WriteException(ex);
+            return false;
         }
+        
+        string tempOutputDir = Path.Combine(Path.GetDirectoryName(csprojOutPath), "publish_temp");
+        
+        ProcessStartInfo psi = new ProcessStartInfo {
+            FileName               = "dotnet",
+            Arguments              = $"publish \"{csprojOutPath}\" -c Release -o \"{tempOutputDir}\" --nologo -v quiet",
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute        = false,
+            CreateNoWindow         = true
+        };
+        
+        using var process = Process.Start(psi);
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        AnsiConsole.WriteLine(output);
+        if (process.ExitCode == 0) {
+            try {
+                string sourceExe = Path.Combine(tempOutputDir, assemblyName + ".exe");
+                if (File.Exists(sourceExe)) {
+                    if (File.Exists(outputPath)) File.Delete(outputPath);
+                    Directory.Move(Path.GetDirectoryName(sourceExe), outputPath.Replace(".exe", ""));
+                    AnsiConsole.MarkupLine($"[lime]✔  Executable moved to:[/] {outputPath}");
+                    return true;
+                }
+            } catch (Exception ex) { AnsiConsole.WriteException(ex); }
+        } else AnsiConsole.MarkupLine($"[red]✘ Compilation failed.[/]\n{error}");
+        return false;
     }
 }
