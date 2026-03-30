@@ -5,7 +5,7 @@ namespace Versy.Lexer;
 
 public class VersyLexer {
     public  List<Token> tokens              { get; set; }
-    private List<Error> errors              { get; set; }
+    public  List<Error> errors              { get; set; }
     private string      sourceCode          { get; set; }
     private int         currentPosition     { get; set; }
     private int         currentLine         { get; set; }

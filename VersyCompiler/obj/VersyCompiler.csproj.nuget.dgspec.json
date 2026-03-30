@@ -62,11 +62,11 @@
             },
             "Spectre.Console": {
               "target": "Package",
-              "version": "[0.54.1-alpha.0.86, )"
+              "version": "[0.54.0, )"
             },
             "Spectre.Console.Cli": {
               "target": "Package",
-              "version": "[1.0.0-alpha.0.15, )"
+              "version": "[0.53.1, )"
             }
           },
           "imports": [

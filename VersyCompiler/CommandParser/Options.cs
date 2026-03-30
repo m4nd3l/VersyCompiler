@@ -11,24 +11,21 @@ public class Options : CommandSettings{
     [CommandArgument(1, "<OUTPUT_FILE>")]
     [Description("Specifies the output path for the generated files.")]
     public string OutputPath { get; set; }
-    
-    [CommandOption("-t|--outputtk <PATH>")]
-    [Description("Specifies the output path for the tokens file.")]
-    public string TokensOutputPath { get; set; } = "";
 
-    [CommandOption("-a|--outputast <PATH>")]
-    [Description("Specifies the output path for the ast tree file.")]
-    public string ASTOutputPath { get; set; } = "";
-    
-    [CommandOption("-c|--csoutput <PATH>")]
-    [Description("Specifies the output path for C# generated code.")]
-    public string CSOutputPath { get; set; } = "";
+    [CommandOption("-d|--debugfiles")]
+    [Description("Add debug files.")]
+    public bool DebugFiles { get; set; } = true;
+
+    [CommandOption("-f|--singlefile")]
+    [Description("Compile in a single file.")]
+    public bool SingleFile { get; set; } = false;
     
     [CommandOption("-r|--run")]
     [Description("Run automatically after compiling.")]
     public bool AutoRun { get; set; }
-        
-    [CommandOption("-s|--singlefile")]
-    [Description("Produce one exe.")]
-    public bool singlefile { get; set; }
+
+    public string TokensOutputPath     { get; set; } = "";
+    public string ASTOutputPath        { get; set; } = "";
+    public string TranslatedOutputPath { get; set; } = "";
+    public string ErrorsOutputPath     { get; set; } = "";
 }

@@ -9,13 +9,15 @@ public class CSharpCompiler {
     private string csOutPath     { get; set; } // .cs
     private string csprojOutPath { get; set; } // .csproj
     private bool   singlefile    { get; set; }
+    private string tempOutputDir { get; set; }
 
     public CSharpCompiler(string CSharpCode, string outputPath, string csOutPath, string csprojOutPath, bool singlefile) {
-        this.CSharpCode     = CSharpCode;
-        this.outputPath     = outputPath;
-        this.csOutPath      = csOutPath + ".cs";
-        this.csprojOutPath  = csprojOutPath;
-        this.singlefile     = singlefile;
+        this.CSharpCode    = CSharpCode;
+        this.outputPath    = outputPath;
+        this.csOutPath     = csOutPath + ".cs";
+        this.csprojOutPath = csprojOutPath;
+        this.singlefile    = singlefile;
+        tempOutputDir      = outputPath.Replace(".exe", "");
     }   
 
     public bool compile() {
@@ -29,7 +31,7 @@ public class CSharpCompiler {
     <Nullable>enable</Nullable>
     <AssemblyName>{assemblyName}</AssemblyName>
     <PublishSingleFile>{singlefile}</PublishSingleFile>
-    <SelfContained>{singlefile}</SelfContained>
+    <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
@@ -44,8 +46,6 @@ public class CSharpCompiler {
             AnsiConsole.WriteException(ex);
             return false;
         }
-        
-        string tempOutputDir = outputPath.Replace(".exe", "");
         
         ProcessStartInfo psi = new ProcessStartInfo {
             FileName               = "dotnet",
@@ -68,4 +68,6 @@ public class CSharpCompiler {
         } else AnsiConsole.MarkupLine($"[red]✘ Compilation failed.[/]\n{error}");
         return false;
     }
+
+    public string getOutputFolderPath() => tempOutputDir;
 }

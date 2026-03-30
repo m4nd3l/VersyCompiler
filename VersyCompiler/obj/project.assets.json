@@ -496,11 +496,8 @@
           }
         }
       },
-      "Spectre.Console/0.54.1-alpha.0.86": {
+      "Spectre.Console/0.54.0": {
         "type": "package",
-        "dependencies": {
-          "Spectre.Console.Ansi": "0.54.1-alpha.0.86"
-        },
         "compile": {
           "lib/net8.0/Spectre.Console.dll": {
             "related": ".xml"
@@ -512,23 +509,10 @@
           }
         }
       },
-      "Spectre.Console.Ansi/0.54.1-alpha.0.86": {
-        "type": "package",
-        "compile": {
-          "lib/net8.0/Spectre.Console.Ansi.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Spectre.Console.Ansi.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Spectre.Console.Cli/1.0.0-alpha.0.15": {
+      "Spectre.Console.Cli/0.53.1": {
         "type": "package",
         "dependencies": {
-          "Spectre.Console": "0.54.0"
+          "Spectre.Console": "0.53.1"
         },
         "compile": {
           "lib/net8.0/Spectre.Console.Cli.dll": {
@@ -1403,10 +1387,10 @@
         "omnisharp.extensions.languageserver.shared.nuspec"
       ]
     },
-    "Spectre.Console/0.54.1-alpha.0.86": {
-      "sha512": "s2OSVyM5B+xbxv+DXpFRHCl4TMZRQfDhOl3l3ZkctPtIH6n9/8vlE22DQbP6fTVCP1jtcLtU8tHjzzHUzx5UdQ==",
+    "Spectre.Console/0.54.0": {
+      "sha512": "StDXCFayfy0yB1xzUHT2tgEpV1/HFTiS4JgsAQS49EYTfMixSwwucaQs/bIOCwXjWwIQTMuxjUIxcB5XsJkFJA==",
       "type": "package",
-      "path": "spectre.console/0.54.1-alpha.0.86",
+      "path": "spectre.console/0.54.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -1420,51 +1404,18 @@
         "lib/netstandard2.0/Spectre.Console.dll",
         "lib/netstandard2.0/Spectre.Console.xml",
         "logo.png",
-        "spectre.console.0.54.1-alpha.0.86.nupkg.sha512",
+        "spectre.console.0.54.0.nupkg.sha512",
         "spectre.console.nuspec"
       ]
     },
-    "Spectre.Console.Ansi/0.54.1-alpha.0.86": {
-      "sha512": "CPqTkhCOO0cT0a6hBEDJqmkSEA/IT4QIhRa2DC8P1yH/OXjsRJQN8Jff3hpPpjtwVOwxcKtQmHzzT0iSBRo5tA==",
+    "Spectre.Console.Cli/0.53.1": {
+      "sha512": "y//7ZZ0shhvgXzoJXJzMaLGA4dPem8qCbkyv9khfE8NQDlH4hPVsHOHYoz6uzAwiTX9Yd7OnX3wNOX/wRfPUOg==",
       "type": "package",
-      "path": "spectre.console.ansi/0.54.1-alpha.0.86",
+      "path": "spectre.console.cli/0.53.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
-        "lib/net10.0/Spectre.Console.Ansi.dll",
-        "lib/net10.0/Spectre.Console.Ansi.xml",
-        "lib/net8.0/Spectre.Console.Ansi.dll",
-        "lib/net8.0/Spectre.Console.Ansi.xml",
-        "lib/net9.0/Spectre.Console.Ansi.dll",
-        "lib/net9.0/Spectre.Console.Ansi.xml",
-        "lib/netstandard2.0/Spectre.Console.Ansi.dll",
-        "lib/netstandard2.0/Spectre.Console.Ansi.xml",
-        "logo.png",
-        "spectre.console.ansi.0.54.1-alpha.0.86.nupkg.sha512",
-        "spectre.console.ansi.nuspec"
-      ]
-    },
-    "Spectre.Console.Cli/1.0.0-alpha.0.15": {
-      "sha512": "nuyE+HeAXsHfl6EVQr8dAcViPGaptvrgi+Mlp8xEFrxVmjFHlT2CGGegLqtRCaIm/bBo6fRp63/VvXE0vVQUjw==",
-      "type": "package",
-      "path": "spectre.console.cli/1.0.0-alpha.0.15",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "README.md",
-        "lib/net10.0/Spectre.Console.Cli.dll",
-        "lib/net10.0/Spectre.Console.Cli.xml",
-        "lib/net10.0/de/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/es/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/fr/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/it/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/ja/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/ko/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/pt/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/ru/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/sv/Spectre.Console.Cli.resources.dll",
-        "lib/net10.0/zh-Hans/Spectre.Console.Cli.resources.dll",
         "lib/net8.0/Spectre.Console.Cli.dll",
         "lib/net8.0/Spectre.Console.Cli.xml",
         "lib/net8.0/de/Spectre.Console.Cli.resources.dll",
@@ -1502,7 +1453,7 @@
         "lib/netstandard2.0/sv/Spectre.Console.Cli.resources.dll",
         "lib/netstandard2.0/zh-Hans/Spectre.Console.Cli.resources.dll",
         "logo.png",
-        "spectre.console.cli.1.0.0-alpha.0.15.nupkg.sha512",
+        "spectre.console.cli.0.53.1.nupkg.sha512",
         "spectre.console.cli.nuspec"
       ]
     },
@@ -1812,8 +1763,8 @@
     "net8.0": [
       "Dumpify >= 0.7.1-beta.1",
       "OmniSharp.Extensions.LanguageServer >= 0.19.9",
-      "Spectre.Console >= 0.54.1-alpha.0.86",
-      "Spectre.Console.Cli >= 1.0.0-alpha.0.15"
+      "Spectre.Console >= 0.54.0",
+      "Spectre.Console.Cli >= 0.53.1"
     ]
   },
   "packageFolders": {
@@ -1878,11 +1829,11 @@
           },
           "Spectre.Console": {
             "target": "Package",
-            "version": "[0.54.1-alpha.0.86, )"
+            "version": "[0.54.0, )"
           },
           "Spectre.Console.Cli": {
             "target": "Package",
-            "version": "[1.0.0-alpha.0.15, )"
+            "version": "[0.53.1, )"
           }
         },
         "imports": [

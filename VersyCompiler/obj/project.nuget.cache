@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "YYmxzZvoof0=",
+  "dgSpecHash": "jF+LGsNmmR4=",
   "success": true,
   "projectFilePath": "C:\\Users\\m4nd3l\\Documents\\Dati\\CSharp\\Versy\\VersyCompiler\\VersyCompiler.csproj",
   "expectedPackageFiles": [
@@ -29,9 +29,8 @@
     "C:\\Users\\m4nd3l\\.nuget\\packages\\omnisharp.extensions.languageprotocol\\0.19.9\\omnisharp.extensions.languageprotocol.0.19.9.nupkg.sha512",
     "C:\\Users\\m4nd3l\\.nuget\\packages\\omnisharp.extensions.languageserver\\0.19.9\\omnisharp.extensions.languageserver.0.19.9.nupkg.sha512",
     "C:\\Users\\m4nd3l\\.nuget\\packages\\omnisharp.extensions.languageserver.shared\\0.19.9\\omnisharp.extensions.languageserver.shared.0.19.9.nupkg.sha512",
-    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console\\0.54.1-alpha.0.86\\spectre.console.0.54.1-alpha.0.86.nupkg.sha512",
-    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console.ansi\\0.54.1-alpha.0.86\\spectre.console.ansi.0.54.1-alpha.0.86.nupkg.sha512",
-    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console.cli\\1.0.0-alpha.0.15\\spectre.console.cli.1.0.0-alpha.0.15.nupkg.sha512",
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console\\0.54.0\\spectre.console.0.54.0.nupkg.sha512",
+    "C:\\Users\\m4nd3l\\.nuget\\packages\\spectre.console.cli\\0.53.1\\spectre.console.cli.0.53.1.nupkg.sha512",
     "C:\\Users\\m4nd3l\\.nuget\\packages\\system.collections.immutable\\8.0.0\\system.collections.immutable.8.0.0.nupkg.sha512",
     "C:\\Users\\m4nd3l\\.nuget\\packages\\system.diagnostics.diagnosticsource\\6.0.0\\system.diagnostics.diagnosticsource.6.0.0.nupkg.sha512",
     "C:\\Users\\m4nd3l\\.nuget\\packages\\system.io.pipelines\\7.0.0\\system.io.pipelines.7.0.0.nupkg.sha512",

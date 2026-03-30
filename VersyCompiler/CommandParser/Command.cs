@@ -17,21 +17,16 @@ using Versy.Parser;
 public class VVCommand : Command<Options> {
     private Options        settings      { get; set; }
     private string         sourceCode    { get; set; }
+    private List<Error>    errors        { get; set; } = new();
     private List<Token>    tokens        { get; set; }
     private BlockStatement statement     { get; set; }
     private string         generatedCode { get; set; }
     
-    protected override int Execute(CommandContext context, Options settings, CancellationToken cancellationToken) {
-        this.settings       = settings;
-        settings.OutputPath = Path.GetFileNameWithoutExtension(settings.OutputPath);
-        
-        settings.CSOutputPath = settings.CSOutputPath.Replace('#', 'S');
+    public override int Execute(CommandContext context, Options settings, CancellationToken cancellationToken) {
+        this.settings                 = settings;
+        settings.OutputPath           = Path.GetFileNameWithoutExtension(settings.OutputPath);
         
         printPath("[yellow]Source code[/]", settings.InputFile);
-        
-        if (settings.TokensOutputPath != "") printPath("[yellow]Tokens Output[/]", settings.TokensOutputPath);
-        if (settings.ASTOutputPath != "") printPath("[yellow]AST Output[/]", settings.ASTOutputPath);
-        if (settings.CSOutputPath != "") printPath("[yellow]C# Output[/]", settings.CSOutputPath);
         
         printPath("[yellow]Executable[/]", Path.Combine(Path.GetDirectoryName(settings.InputFile), settings.OutputPath + ".exe"));
         
@@ -56,10 +51,7 @@ public class VVCommand : Command<Options> {
             VersyLexer lexer = new VersyLexer(sourceCode);
             bool succeded = lexer.tokenize();
             tokens = lexer.tokens;
-            using var writer = new StringWriter();
-            string text = "";
-            foreach (Token token in tokens) text += token.ToString();
-            if (settings.TokensOutputPath != "") File.WriteAllText(settings.TokensOutputPath , text);
+            foreach (var error in lexer.errors) errors.Add(error);
             if (!succeded) exit("One or more errors occurred.", true, 1, true);
         } catch (Exception e) { error(e); throw; }
     }
@@ -69,25 +61,13 @@ public class VVCommand : Command<Options> {
             statement = parser.parse();
             if (parser.errors.Count > 0) // TODO : MANAGE ERRORS TO SINGLE FILE
                 exit("One or more errors occurred.", true, 1, true);
-            
-            if (settings.ASTOutputPath == "") return;
-            using var writer = new StringWriter();
-            var text = statement.DumpText(
-                label: "Versy AST Visualizer",
-                members: new MembersConfig { IncludeNonPublicMembers = true},
-                typeNames: new TypeNamingConfig { ShowTypeNames      = true, UseFullName   = true, UseAliases = false},
-                tableConfig: new TableConfig { ShowRowSeparators     = true }
-            );
-            if (settings.ASTOutputPath != "") File.WriteAllText(settings.ASTOutputPath , text);
+            foreach (var error in parser.errors) errors.Add(error);
         } catch (Exception e) { error(e); throw; }
     }
     private void codegen(StatusContext ctx) {
         try {
             CSharpTranslator csTranslator = new CSharpTranslator(statement);
             generatedCode = csTranslator.translate();
-            if (settings.CSOutputPath == "") return;
-            using var writer = new StringWriter();
-            if (settings.CSOutputPath != "") File.WriteAllText(settings.CSOutputPath , generatedCode);
         } catch (Exception e) { error(e); throw; }
     }
     private void compile(StatusContext ctx) {
@@ -97,20 +77,51 @@ public class VVCommand : Command<Options> {
             string finalExeName = settings.OutputPath.EndsWith(".exe") ? settings.OutputPath : settings.OutputPath + ".exe";
             string absoluteOutputPath = Path.Combine(sourceFileDir, finalExeName);
             
-            string baseFolder = string.IsNullOrWhiteSpace(settings.CSOutputPath) 
+            string baseFolder = string.IsNullOrWhiteSpace(settings.TranslatedOutputPath) 
                                     ? Path.Combine(Path.GetTempPath(), "VersyCompilerTemp") 
-                                    : Path.GetDirectoryName(Path.GetFullPath(settings.CSOutputPath));
+                                    : Path.GetDirectoryName(Path.GetFullPath(settings.TranslatedOutputPath));
         
             string workingFolder = Path.Combine(baseFolder, "BuildProject");
             Directory.CreateDirectory(workingFolder);
         
-            string csout = Path.Combine(workingFolder, "Program"); // Il .cs viene aggiunto dal costruttore del compiler
+            string csout = Path.Combine(workingFolder, "Program");
             string csprojout = Path.Combine(workingFolder, settings.OutputPath + ".csproj");
             
-            CSharpCompiler compiler = new CSharpCompiler(generatedCode, absoluteOutputPath, csout, csprojout, settings.singlefile);
+            CSharpCompiler compiler = new CSharpCompiler(generatedCode, absoluteOutputPath, csout, csprojout, settings.SingleFile);
             bool succeded = compiler.compile();
             settings.OutputPath = absoluteOutputPath;
 
+            if (!settings.DebugFiles) {
+                if (!succeded) exit("One or more errors occurred.", true, 1, true);
+                return;
+            }
+            
+            string debugInfoFolder = Path.Combine(compiler.getOutputFolderPath(), "debug-info");
+            Directory.CreateDirectory(debugInfoFolder);
+            
+            settings.TokensOutputPath     = Path.Join(debugInfoFolder, "tokens.txt");
+            settings.ASTOutputPath        = Path.Join(debugInfoFolder, "ast.txt");
+            settings.TranslatedOutputPath = Path.Join(debugInfoFolder, "newcode.txt");
+            
+            using var writer = new StringWriter();
+            
+            string text1 = "";
+            foreach (Token token in tokens) text1 += token.ToString();
+            if (settings.TokensOutputPath != "") File.WriteAllText(settings.TokensOutputPath , text1);
+            
+            var text = statement.DumpText(
+                label: "Versy AST Visualizer",
+                members: new MembersConfig { IncludeNonPublicMembers = true},
+                typeNames: new TypeNamingConfig { ShowTypeNames      = true, UseFullName   = true, UseAliases = false},
+                tableConfig: new TableConfig { ShowRowSeparators     = true }
+            );
+            if (settings.ASTOutputPath != "") File.WriteAllText(settings.ASTOutputPath , text);
+            
+            if (settings.TranslatedOutputPath != "") File.WriteAllText(settings.TranslatedOutputPath , generatedCode);
+            string errorst = "";
+            foreach (var error in errors) errorst += error + Environment.NewLine;
+            if (errorst != "") File.WriteAllText(settings.ErrorsOutputPath, errorst);
+            
             if (!succeded) exit("One or more errors occurred.", true, 1, true);
         } catch (Exception e) { error(e); throw; }
     }
@@ -140,6 +151,7 @@ public class VVCommand : Command<Options> {
         } catch (Exception e) { AnsiConsole.WriteException(e); throw; }
     }
 
+    #region HELPER
     private void printStatus(string statusText, Action<StatusContext> action, string? success = null, Spinner? spinner = null, Style? style = null) {
         if (spinner == null) spinner = Spinner.Known.Default;
         if (style == null)   style   = Style.Parse("yellow bold");
@@ -177,4 +189,5 @@ public class VVCommand : Command<Options> {
         if (force) Environment.Exit(exitCode);
         return exitCode;
     }
+    #endregion
 }
